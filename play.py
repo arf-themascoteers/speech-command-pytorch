@@ -3,28 +3,11 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torchaudio.datasets import SPEECHCOMMANDS
 from torch.utils.data import DataLoader
-import random
 import os
 
 
-QUICK = True
+QUICK = False
 
-
-class SimpleNet(nn.Module):
-    def __init__(self):
-        super(SimpleNet, self).__init__()
-        self.n_labels = 35
-        self.net = nn.Sequential(
-            nn.Linear(16000, 128),
-            nn.ReLU(),
-            nn.Linear(128, 64),
-            nn.ReLU(),
-            nn.Linear(64, self.n_labels)
-        )
-
-    def forward(self, x):
-        x = self.net(x)
-        return F.log_softmax(x, dim=1)
 
 class SubsetSC(SPEECHCOMMANDS):
     def __init__(self, subset: str = None):
@@ -53,8 +36,26 @@ class SubsetSC(SPEECHCOMMANDS):
             self._walker = [self._walker[w] for w in range(len(self._walker)) if self._walker[w] not in excludes and w%1000 == 0]
 
 
+class SimpleNet(nn.Module):
+    def __init__(self):
+        super(SimpleNet, self).__init__()
+        self.n_labels = 35
+        self.net = nn.Sequential(
+            nn.Linear(16000, 128),
+            nn.ReLU(),
+            nn.Linear(128, 64),
+            nn.ReLU(),
+            nn.Linear(64, self.n_labels)
+        )
+
+    def forward(self, x):
+        x = self.net(x)
+        return F.log_softmax(x, dim=1)
+
+
 def refine(data):
     return [data[i] for i in range(len(data)) if data[i][0].shape[1] == 16000 ]
+
 
 def train():
     NUM_EPOCHS = 20
@@ -80,6 +81,7 @@ def train():
             print(f'Epoch:{epoch + 1}, Loss:{loss.item():.4f}')
     return model
 
+
 def test(model):
     working_set = SubsetSC("validation")
     if QUICK:
@@ -95,5 +97,7 @@ def test(model):
             pred = y_pred.data.max(1, keepdim=True)[1]
             correct += pred.eq(train_labels_indices.data.view_as(pred)).sum()
     print(f"{correct} correct among {len(working_set)}")
+
+
 model = train()
 test(model)
