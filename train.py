@@ -3,6 +3,7 @@ import torch.nn.functional as F
 import random
 import simple_net
 import speechdata
+import matplotlib.pyplot as plt
 
 
 def train():
